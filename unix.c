@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <linux/fs.h>
-
+#include <string.h>
 
 #define BUFFER_SIZE (4*1024*1024) // size of buf for writing masking data
 
@@ -23,10 +23,10 @@ off_t getFileSize(int fd){
 
     //for files
     if(fstat(fd, &st) == 0){
-        return st.st_size
+        return st.st_size;
     }
 
-    return -1
+    return -1;
 }
 
 //func for single overwrite
@@ -45,8 +45,8 @@ int overwrite(const char *path, unsigned char pattern){
     
     if ((fileSize = getFileSize(fd)) == -1){
         perror("getting file size");
-        close(fd)
-        return -1
+        close(fd);
+        return -1;
     }
     
 
@@ -58,17 +58,18 @@ int overwrite(const char *path, unsigned char pattern){
     if(pattern > 0){
         memset(buffer, (unsigned char)pattern, BUFFER_SIZE);
     }else{
-        //random 
-        if((int urandomfd = open("/dev/urandom", o_rdonly)) == -1){
+        //random
+		int urandomfd = open("/dev/urandom", O_RDONLY);
+        if(urandomfd == -1){
             perror("open /dev/urandom");
             free(buffer);
-            flose(fd);
+            close(fd);
             return -1;
         }
-
-        if((ssize_t readed = read(urandom_fd, buffer, BUFFER_SIZE)) != BUFFER_SIZE){
+		ssize_t readed = read(urandomfd, buffer, BUFFER_SIZE);
+        if(readed != BUFFER_SIZE){
             fprintf(stderr, "not enough random data");
-            close(urandom_fd);
+            close(urandomfd);
             free(buffer);
             close(fd);
             return -1;
@@ -83,16 +84,17 @@ int overwrite(const char *path, unsigned char pattern){
         memset(buffer, (unsigned char)pattern, BUFFER_SIZE);
     }else{
         //random 
-        if((int urandomfd = open("/dev/urandom", o_rdonly)) == -1){
+		int urandomfd = open("/dev/urandom", O_RDONLY);
+        if(urandomfd == -1){
             perror("open /dev/urandom");
             free(buffer);
-            flose(fd);
+            close(fd);
             return -1;
         }
-
-        if((ssize_t readed = read(urandom_fd, buffer, BUFFER_SIZE)) != BUFFER_SIZE){
+		ssize_t readed = read(urandomfd, buffer, BUFFER_SIZE);
+        if(readed != BUFFER_SIZE){
             fprintf(stderr, "not enough random data");
-            close(urandom_fd);
+            close(urandomfd);
             free(buffer);
             close(fd);
             return -1;
@@ -108,7 +110,7 @@ int overwrite(const char *path, unsigned char pattern){
         perror("write");
         free(buffer);
         close(fd);
-        return -1
+        return -1;
     }
     totalWriten += writen;
     
@@ -122,26 +124,27 @@ int overwrite(const char *path, unsigned char pattern){
 
     printf("overwriten with 0x%02x", pattern);
 
-    free(buffen);
+    free(buffer);
     close(fd);
     return 0;
 }
 
 int main(int argc, char *argv[]){
+	char *path;
     if(argc < 2){
-        printf("USAGE: srm <path to file/device");
+		fprintf(stderr, "USAGE: srm <path>");
+		return 1;
     }
     if(argc = 2){
-        const char *path;
         strcpy(path, argv[2]);
     }
 
 
 
-    patterns[] = {0x00, 0xFF};
+    char patterns[] = {0x00, 0xFF};
     int overwrites = 2;
 
-    printf("All data on %s will be irrevocably deleted", path);
+    printf("All data on %s will be irrevocably deleted", *path);
     printf("confirm deletion by typing yEs");
     char confirm[10];
     if(scanf("%9d",confirm) != -1 || strcmp(confirm, "yEs") != 0){
@@ -149,9 +152,9 @@ int main(int argc, char *argv[]){
     }
 
     printf("Confirmed.");
-    for(int i = 0; i < overwrite; ++i){
+    for(int i = 0; i < overwrites; ++i){
         printf("overwrite number %d/2", i + 1);
-        if(overwrite(peth,patterns[i]) != 0){
+        if(overwrite(path,patterns[i]) != 0){
             fprintf(stderr, "failed on overwrite %d.", i + 1);
             return 1;
         }
